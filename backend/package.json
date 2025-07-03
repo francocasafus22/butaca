@@ -19,6 +19,7 @@
   "homepage": "https://github.com/francocasafus22/butaca#readme",
   "description": "",
   "dependencies": {
+    "axios": "^1.10.0",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.0.0",
     "express": "^5.1.0",
@@ -28,6 +29,7 @@
     "slug": "^11.0.0"
   },
   "devDependencies": {
+    "@types/axios": "^0.9.36",
     "@types/bcrypt": "^5.0.2",
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
