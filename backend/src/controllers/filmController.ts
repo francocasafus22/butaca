@@ -1,20 +1,11 @@
 import type { Request, Response } from "express";
-import { Film, IFilm } from "../models/Film";
+import { Film} from "../models/Film";
 import { genres } from "../data/genres";
-import { fetchAndSavePopularFilms } from "../utils/fetchPopularFilms";
-import axios, { all } from "axios";
+import { fetchAndSavePopularFilms } from "../services/filmServices";
+import { ITMDBMovie } from "../interfaces/tmdb";
+import axios from "axios";
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
-
-interface ITMDBMovie {
-  id: number;
-  title: string;
-  overview?: string;
-  poster_path?: string;
-  release_date?: string;
-  popularity: number;
-  genre_ids: number[];
-}
 
 export const fetchSaveFilms = async (req: Request, res: Response) => {
   try {

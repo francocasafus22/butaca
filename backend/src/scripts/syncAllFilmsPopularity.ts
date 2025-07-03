@@ -1,4 +1,4 @@
-import { updateAllFilmsPopularity } from "../utils/updatePopularity";
+import { updateAllFilmsPopularity } from "../services/filmServices";
 import { connectDB } from "../config/db";
 import { disconnect } from "mongoose";
 

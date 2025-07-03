@@ -1,4 +1,4 @@
-import { fetchAndSavePopularFilms } from "../utils/fetchPopularFilms";
+import { fetchAndSavePopularFilms } from "../services/filmServices";
 import { connectDB } from "../config/db";
 
 async function main() {

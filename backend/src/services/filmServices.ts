@@ -1,33 +1,9 @@
-import { genres } from "../data/genres";
 import { Film } from "../models/Film";
 import axios from "axios";
 import dotenv from "dotenv";
+import { ITMDBMovie, ITMDBMoviePopularity } from "../interfaces/tmdb";
+import { mapTMDBtoLocal } from "../utils/mapTMDBtoLocal";
 dotenv.config();
-
-interface ITMDBMovie {
-  id: number;
-  title: string;
-  overview?: string;
-  poster_path?: string;
-  release_date?: string;
-  popularity: number;
-  genre_ids: number[];
-}
-
-export function mapTMDBtoLocal(movie: ITMDBMovie) {
-  const release_date = movie.release_date ? new Date(movie.release_date) : null;
-  const genres_TMDB = movie.genre_ids.map((id) => genres[id]).filter(Boolean);
-
-  return {
-    tmdbId: movie.id,
-    title: movie.title,
-    posterPath: movie.poster_path,
-    overview: movie.overview,
-    releaseDate: release_date,
-    genres: genres_TMDB,
-    popularity: movie.popularity,
-  };
-}
 
 export async function fetchAndSavePopularFilms(pages: number = 5) {
   const TMDB_API_KEY = process.env.TMDB_API_KEY;
@@ -75,5 +51,36 @@ export async function fetchAndSavePopularFilms(pages: number = 5) {
     );
   } catch (error) {
     console.log("Error al obtener las peliculas: ", error.message);
+  }
+}
+
+export async function updateAllFilmsPopularity() {
+  const TMDB_API_KEY = process.env.TMDB_API_KEY;
+
+  const allFilms = await Film.find({}, { tmdbId: 1, _id: 0 });
+  const ids = allFilms.map((film) => film.tmdbId);
+
+  const bulkOps = [];
+
+  for (const id of ids) {
+    try {
+      const url = `https://api.themoviedb.org/3/movie/${id}?api_key=${TMDB_API_KEY}&language=es-ES`;
+      const response = await axios.get<ITMDBMoviePopularity>(url);
+      const popularity = response.data.popularity;
+
+      bulkOps.push({
+        updateOne: {
+          filter: { tmdbId: id },
+          update: { $set: { popularity } },
+        },
+      });
+    } catch (error) {
+      console.error(`Error al actualizar película ID ${id}:`, error);
+    }
+  }
+
+  if (bulkOps.length > 0) {
+    await Film.bulkWrite(bulkOps);
+    console.log(`Actualizadas ${bulkOps.length} películas.`);
   }
 }
