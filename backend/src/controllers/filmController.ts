@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { Film, IFilm } from "../models/Film";
 import { genres } from "../data/genres";
+import { fetchAndSavePopularFilms } from "../utils/fetchPopularFilms";
 import axios, { all } from "axios";
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
@@ -15,51 +16,7 @@ interface ITMDBMovie {
   genre_ids: number[];
 }
 
-export async function fetchAndSavePopularFilms(pages: number = 5) {
-  try {
-    for (let page = 1; page <= pages; page++) {
-      const url = `https://api.themoviedb.org/3/movie/popular?api_key=${TMDB_API_KEY}&language=es-ES&page=${page}`;
-
-      const response = await axios.get<{ results: ITMDBMovie[] }>(url);
-      const movies = response.data.results;
-
-      for (const movie of movies) {
-        const release_date = movie.release_date
-          ? new Date(movie.release_date)
-          : null;
-
-        const genres_TMDB = movie.genre_ids
-          .map((id) => genres[id])
-          .filter(Boolean);
-
-        const existingFilm = await Film.findOne({ tmdbId: movie.id });
-
-        if (!existingFilm) {
-          await Film.create({
-            tmdbId: movie.id,
-            title: movie.title,
-            posterPath: movie.poster_path,
-            overview: movie.overview,
-            releaseDate: release_date,
-            genres: genres_TMDB,
-            popularity: movie.popularity,
-          });
-        } else {
-          existingFilm.popularity = movie.popularity;
-          await existingFilm.save();
-        }
-      }
-      console.log(`Página ${page} procesada (20 películas).`);
-    }
-    console.log(
-      `Las primeras ${pages * 20} peliculas populares fueron cargadas.`
-    );
-  } catch (error) {
-    console.log("Error al obtener las peliculas: ", error.message);
-  }
-}
-
-export const showFilms = async (req: Request, res: Response) => {
+export const fetchSaveFilms = async (req: Request, res: Response) => {
   try {
     const page: number = Number(req.query.page);
 

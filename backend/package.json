@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "nodemon src/index.ts",
     "start": "node dist/index.js",
-    "build": "tsc"
+    "build": "tsc",
+    "sync:popular": "ts-node ./src/scripts/syncPopularFilms.ts",
+    "sync:allFilmPopularity": "ts-node ./src/scripts/syncAllFilmsPopularity.ts"
   },
   "repository": {
     "type": "git",
