@@ -1,7 +1,14 @@
 import { Router } from "express";
 import { body } from "express-validator";
-import { createAccount, getUser, login } from "../controllers/userController";
+import {
+  addFilm,
+  createAccount,
+  getUser,
+  login,
+} from "../controllers/userController";
 import { handleInputErrors } from "../middlewares/validation";
+import User from "../models/User";
+import { authenticate } from "../middlewares/auth";
 
 const UserRoutes = Router();
 
@@ -28,5 +35,7 @@ UserRoutes.post(
   handleInputErrors,
   login
 );
+
+UserRoutes.patch("/addFilm/:film", authenticate, addFilm);
 
 export default UserRoutes;

@@ -1,8 +1,13 @@
 import type { Request, Response } from "express";
-import { User } from "../models/User";
+import { IMyFilms, User } from "../models/User";
 import { hashPassword, checkPassword } from "../utils/auth";
 import { generateJWT } from "../utils/jwt";
 import slug from "slug";
+import axios from "axios";
+import { Film } from "../models/Film";
+import { ITMDBMovie } from "../interfaces/tmdb";
+import { mapTMDBtoLocal } from "../utils/mapTMDBtoLocal";
+import mongoose from "mongoose";
 
 export const getUser = async (req: Request, res: Response) => {
   const users = await User.find();
@@ -73,6 +78,69 @@ export const login = async (req: Request, res: Response) => {
     res.send(token);
   } catch (error) {
     console.error("Error al iniciar sesion:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+function generateStatusMessage(watched: boolean, isFavourite: boolean) {
+  if (isFavourite && watched)
+    return "Película agregada a tus favoritas y marcada como vista.";
+  if (isFavourite) return "Película agregada a tus favoritas.";
+  if (watched) return "Película marcada como vista.";
+  return "Película agregada a tu lista por ver.";
+}
+
+export const addFilm = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      res.status(401).json({ error: "No autorizado." });
+      return;
+    }
+
+    const tmdbId = Number(req.params.film);
+    const { watched, isFavourite } = req.body;
+
+    if (!tmdbId) {
+      res.status(400).json({ error: "tmdbId es requerido." });
+      return;
+    }
+
+    let movie = await Film.findOne({ tmdbId: tmdbId }, { _id: 1 });
+
+    if (!movie) {
+      const url = `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${process.env.TMDB_API_KEY}&language=es-ES`;
+      const response = await axios.get<ITMDBMovie>(url);
+
+      const newMovie = mapTMDBtoLocal(response.data);
+      movie = await Film.create(newMovie);
+    }
+
+    const movieId = movie._id as mongoose.Types.ObjectId;
+
+    const existsIndex = user.myFilms.findIndex((f) => f.film.equals(movieId));
+
+    if (existsIndex >= 0) {
+      // Actualizar campos existentes
+      if (watched !== undefined) user.myFilms[existsIndex].watched = watched;
+      if (isFavourite !== undefined)
+        user.myFilms[existsIndex].isFavourite = isFavourite;
+    } else {
+      user.myFilms.unshift({
+        film: movieId,
+        watched: watched ?? false,
+        isFavourite: isFavourite ?? false,
+      });
+    }
+
+    await user.save();
+
+    res
+      .status(201)
+      .json({ message: generateStatusMessage(watched, isFavourite) });
+  } catch (error) {
+    console.error("Error al agregar a favoritos: ", error.message);
     res.status(500).json({ error: error.message });
   }
 };
